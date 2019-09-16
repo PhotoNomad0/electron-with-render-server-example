@@ -4,30 +4,24 @@ let { fork } = require('child_process')
 let findOpenSocket = require('./find-open-socket')
 let isDev = require('electron-is-dev')
 
-let clientWin
-let serverWin
+global.uiWin = null;
+global.serverWin = null;
 
-function createWindow(socketName) {
-  clientWin = new BrowserWindow({
+function createWindow() {
+  uiWin = new BrowserWindow({
     width: 800,
     height: 600,
     webPreferences: {
-      nodeIntegration: false,
+      nodeIntegration: true,
       preload: __dirname + '/client-preload.js'
     }
   })
 
-  clientWin.loadFile('client-index.html')
-
-  clientWin.webContents.on('did-finish-load', () => {
-    clientWin.webContents.send('set-socket', {
-      name: serverSocket
-    })
-  })
+  uiWin.loadFile('client-index.html')
 }
 
 function createBackgroundWindow(socketName) {
-  const win = new BrowserWindow({
+  serverWin = new BrowserWindow({
     x: 500,
     y: 300,
     width: 700,
@@ -37,26 +31,13 @@ function createBackgroundWindow(socketName) {
       nodeIntegration: true
     }
   })
-  win.loadURL(`file://${__dirname}/server-dev.html`)
-
-  win.webContents.on('did-finish-load', () => {
-    win.webContents.send('set-socket', { name: socketName })
-  })
-
-  serverWin = win
+  serverWin.loadURL(`file://${__dirname}/server-dev.html`)
 }
 
-
 app.on('ready', async () => {
-  serverSocket = await findOpenSocket()
-
-  createWindow(serverSocket)
-  createBackgroundWindow(serverSocket)
+  createWindow()
+  createBackgroundWindow()
 })
 
 app.on('before-quit', () => {
-  if (serverProcess) {
-    serverProcess.kill()
-    serverProcess = null
-  }
 })

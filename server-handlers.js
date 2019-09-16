@@ -1,10 +1,8 @@
-let handlers = {}
+const handlers = {}
 
 handlers._history = []
 
-handlers['make-factorial'] = async ({ num }) => {
-  handlers._history.push(num)
-
+const makeFactorial = (num ) => {
   function fact(n) {
     if (n === 1) {
       return 1
@@ -17,9 +15,12 @@ handlers['make-factorial'] = async ({ num }) => {
   return factorial
 }
 
-handlers['ring-ring'] = async () => {
-  console.log('picking up the phone')
+const ringRing = (call) => {
+  console.log('picking up the phone: ' + call)
   return 'hello!'
 }
+
+handlers.makeFactorial = makeFactorial
+handlers.ringRing = ringRing
 
 module.exports = handlers

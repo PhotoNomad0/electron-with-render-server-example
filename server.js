@@ -1,15 +1,34 @@
-let serverHandlers = require('./server-handlers')
-let ipc = require('./server-ipc')
+const { remote, ipcRenderer } = require('electron')
+const handlers = require('./server-handlers')
+const {channelFactorial, channelMakeCall} = require('./constants')
 
-let isDev, version
+const version = remote.app.getVersion()
+let uiWin = null;
 
-let { ipcRenderer, remote } = require('electron')
-isDev = true
-version = remote.app.getVersion()
+function getUiWin() {
+  if (!uiWin) {
+    uiWin = remote.getGlobal('uiWin');
+  }
+  return uiWin;
+}
 
-ipcRenderer.on('set-socket', (event, { name }) => {
-  ipc.init(name, serverHandlers)
-})
+function sendReply(channel, factorial) {
+  const uiWin = getUiWin();
+  if (uiWin) {
+    uiWin.webContents.send(channel, factorial);
+  }
+}
 
-console.log(version)
+ipcRenderer.on(channelFactorial, (event, num) => {
+  console.log(channelFactorial, num);
+  const factorial = handlers.makeFactorial(num);
+  sendReply(channelFactorial, factorial);
+});
 
+ipcRenderer.on(channelMakeCall, (event, call) => {
+  console.log(channelMakeCall, call);
+  const callResponse = handlers.ringRing(call);
+  sendReply(channelMakeCall, callResponse);
+});
+
+console.log("server", version)

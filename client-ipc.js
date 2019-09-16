@@ -1,93 +1,71 @@
-// Init
-async function init() {
-  const socketName = await window.getServerSocket()
-  connectSocket(socketName, () => {
-    console.log('Connected!')
-  })
+const { remote, ipcRenderer } = require('electron');
+const {channelFactorial, channelMakeCall} = require('./constants');
+
+let serverWin = null;
+
+function getServerWin() {
+  if (!serverWin) {
+    serverWin = remote.getGlobal('serverWin');
+  }
+  return serverWin;
 }
 
-init()
-
-// State
-const replyHandlers = new Map()
-const listeners = new Map()
-let messageQueue = []
-let socketClient = null
-
-// Functions
-function connectSocket(name, onOpen) {
-  window.ipcConnect(name, function(client) {
-    client.on('message', data => {
-      const msg = JSON.parse(data)
-
-      if (msg.type === 'error') {
-        // Up to you whether or not to care about the error
-        const { id } = msg
-        replyHandlers.delete(id)
-      } else if (msg.type === 'reply') {
-        const { id, result } = msg
-
-        const handler = replyHandlers.get(id)
-        if (handler) {
-          replyHandlers.delete(id)
-          handler.resolve(result)
-        }
-      } else if (msg.type === 'push') {
-        const { name, args } = msg
-
-        const listens = listeners.get(name)
-        if (listens) {
-          listens.forEach(listener => {
-            listener(args)
-          })
-        }
-      } else {
-        throw new Error('Unknown message type: ' + JSON.stringify(msg))
-      }
-    })
-
-    client.on('connect', () => {
-      socketClient = client
-
-      // Send any messages that were queued while closed
-      if (messageQueue.length > 0) {
-        messageQueue.forEach(msg => client.emit('message', msg))
-        messageQueue = []
-      }
-
-      onOpen()
-    })
-
-    client.on('disconnect', () => {
-      socketClient = null
-    })
-  })
+function sendMessage(channel, data) {
+  const serverWin = getServerWin();
+  if (serverWin) {
+    serverWin.webContents.send(channel, data);
+    return true;
+  }
+  return false;
 }
 
-function send(name, args) {
-  return new Promise((resolve, reject) => {
-    let id = window.uuid.v4()
-    replyHandlers.set(id, { resolve, reject })
-    if (socketClient) {
-      socketClient.emit('message', JSON.stringify({ id, name, args }))
-    } else {
-      messageQueue.push(JSON.stringify({ id, name, args }))
+let factorialCallback = null;
+ipcRenderer.on (channelFactorial, (event, num) => {
+  console.log (channelFactorial, num);
+  if(factorialCallback) {
+    factorialCallback(num);
+  }
+});
+
+let makeCallCallback = null;
+ipcRenderer.on (channelMakeCall, (event, call) => {
+  console.log (channelMakeCall, call);
+  if(makeCallCallback) {
+    makeCallCallback(call);
+  }
+});
+
+async function getFactorial(num) {
+  const factorial = await new Promise((resolve, reject) => {
+    factorialCallback = (results) => {
+      resolve(results);
+    };
+    const sent = sendMessage(channelFactorial, num);
+    if (!sent) {
+      reject('not sent');
     }
-  })
+  });
+  factorialCallback = null;
+  console.log('factorial(' + num + ') = ' + factorial);
+  return factorial;
 }
 
-function listen(name, cb) {
-  if (!listeners.get(name)) {
-    listeners.set(name, [])
-  }
-  listeners.get(name).push(cb)
-
-  return () => {
-    let arr = listeners.get(name)
-    listeners.set(name, arr.filter(cb_ => cb_ !== cb))
-  }
+async function makeCall(call) {
+  const callResponse = await new Promise((resolve, reject) => {
+    makeCallCallback = (results) => {
+      resolve(results);
+    };
+    const sent = sendMessage(channelMakeCall, call);
+    if (!sent) {
+      reject('not sent');
+    }
+  });
+  makeCallCallback = null;
+  console.log('makeCall(' + call + ') = ' + callResponse);
+  return callResponse;
 }
 
-function unlisten(name) {
-  listeners.set(name, [])
-}
+const client = {};
+client.getFactorial = getFactorial;
+client.makeCall = makeCall;
+module.exports = client;
