@@ -12,8 +12,9 @@ handlers['make-factorial'] = async ({ num }) => {
     return n * fact(n - 1)
   }
 
-  console.log('making factorial')
-  return fact(num)
+  const factorial = fact(num);
+  console.log('factorial(' + num + ') = ' + factorial);
+  return factorial
 }
 
 handlers['ring-ring'] = async () => {

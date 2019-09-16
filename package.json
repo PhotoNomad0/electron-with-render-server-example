@@ -1,10 +1,11 @@
 {
-  "name": "electron-with-server-example",
+  "name": "electron-with-render-server-example",
   "version": "1.0.0",
   "main": "index.js",
   "license": "MIT",
   "dependencies": {
     "electron": "^5.0.4",
+    "electron-ipcfy": "^0.1.1",
     "electron-is-dev": "^1.1.0",
     "node-ipc": "^9.1.1",
     "uuid": "^3.3.2"

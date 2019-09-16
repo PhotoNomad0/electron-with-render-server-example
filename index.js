@@ -6,7 +6,6 @@ let isDev = require('electron-is-dev')
 
 let clientWin
 let serverWin
-let serverProcess
 
 function createWindow(socketName) {
   clientWin = new BrowserWindow({
@@ -33,7 +32,7 @@ function createBackgroundWindow(socketName) {
     y: 300,
     width: 700,
     height: 500,
-    show: true,
+    show: isDev,
     webPreferences: {
       nodeIntegration: true
     }
@@ -47,28 +46,12 @@ function createBackgroundWindow(socketName) {
   serverWin = win
 }
 
-function createBackgroundProcess(socketName) {
-  serverProcess = fork(__dirname + '/server.js', [
-    '--subprocess',
-    app.getVersion(),
-    socketName
-  ])
-
-  serverProcess.on('message', msg => {
-    console.log(msg)
-  })
-}
 
 app.on('ready', async () => {
   serverSocket = await findOpenSocket()
 
   createWindow(serverSocket)
-
-  if (isDev) {
-    createBackgroundWindow(serverSocket)
-  } else {
-    createBackgroundProcess(serverSocket)
-  }
+  createBackgroundWindow(serverSocket)
 })
 
 app.on('before-quit', () => {

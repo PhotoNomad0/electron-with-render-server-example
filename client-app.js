@@ -1,7 +1,8 @@
 let output = document.querySelector('#output')
+let num = 1;
 
 document.querySelector('#factorial').addEventListener('click', async () => {
-  let result = await send('make-factorial', { num: 5 })
+  let result = await send('make-factorial', { num: num++ })
   output.innerHTML = result
 })
 
